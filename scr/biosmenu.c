@@ -137,7 +137,7 @@ void show_boot_failed_error(void);
 
 // Массив пунктов меню
 const menu_item_t menu_items[] = {
-    {" Boot OS       ", boot_os},
+    {" Boot          ", boot_os},
     {" System Info   ", 0},
     {" Hardware Test ", hardware_test},
     {" Settings      ", settings_menu},
@@ -992,12 +992,12 @@ void draw_interface(void) {
     show_right_panel();
     
     // Копирайт
-    print_string("(C) 2025 WeBIOS - Press ESC to reboot", 0, HEIGHT - 1, 0x70);
+    print_string("(C) 2025 WexIB - Press ESC to reboot", 0, HEIGHT - 1, 0x70);
 }
 
 // Левое меню
 void show_left_menu(void) {
-    print_string("WeBIOS Menu", 1, 0, 0x70);
+    print_string("  BIOS Menu", 1, 0, 0x70);
     
     // Показываем видимые пункты меню
     for(int i = 0; i < 10; i++) {
@@ -1041,7 +1041,7 @@ void show_right_panel(void) {
         case 1: // System Info
             print_string("CPU: 80386 compatible", 22, 3, 0x0F);
             print_string("Memory: 640K base", 22, 4, 0x0F);
-            print_string("BIOS: WeBIOS v4.51", 22, 5, 0x0F);
+            print_string("BIOS: WexIB v4.51", 22, 5, 0x0F);
             print_string("Security: ", 22, 6, 0x0F);
             if (bios_settings.security_enabled) {
                 print_string("ENABLED", 33, 6, 0x0F);
