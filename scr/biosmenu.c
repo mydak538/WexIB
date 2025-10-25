@@ -93,6 +93,7 @@ void show_right_panel(void);
 void handle_input(void);
 int strcmp(const char* s1, const char* s2);
 void delay(uint32_t count);
+void show_boot_screen(void);
 void boot_os(void);
 void detect_memory_info(void);
 void detect_cpu_info(void);
@@ -155,8 +156,13 @@ const char* boot_device_names[] = {
     "Disabled"
 };
 
-// Главная функция
 void main() {
+    // Показываем загрузочный экран
+    show_boot_screen();
+    
+    // Очищаем и сбрасываем состояние
+    clear_screen(0x07);
+    
     // Загружаем настройки из CMOS
     load_bios_settings();
     
@@ -165,7 +171,10 @@ void main() {
         enter_password();
     }
     
-    clear_screen(0x07);
+    // Сбрасываем состояние меню
+    menu_state.selected = 0;
+    menu_state.needs_redraw = 1;
+    last_key = 0;
 
     while(1) {
         if (menu_state.needs_redraw) {
@@ -330,15 +339,13 @@ void update_bios_menu(void) {
     print_string("====================", 32, 6, 0x0F);
     
     print_string("Searching for updates...", 30, 8, 0x07);
-    delay(99999999);
+    delay(100000);
     
     print_string("No updates found.", 35, 10, 0x07);
     print_string("Your BIOS is up to date.", 33, 11, 0x07);
     print_string("Current version: WeBIOS v4.51", 30, 13, 0x07);
     
-    print_string("Press any key to return...", 30, 16, 0x07);
-    delay(99999999);
-    keyboard_read();
+    delay(1000000);
 }
 
 void hardware_test(void) {
@@ -349,60 +356,12 @@ void hardware_test(void) {
     print_string("=====================", 30, 2, 0x0F);
     
     print_string("Testing hardware components...", 25, 4, 0x07);
-    delay(99999999);
+    delay(10000);
     
-    // Тест памяти
-uint32_t detect_memory_range(uint32_t start, uint32_t end) {
-    volatile uint32_t *test_addr;
-    uint32_t size = 0;
-    
-    // Проверяем каждый мегабайт
-    for(uint32_t addr = start; addr < end; addr += 0x100000) {
-        test_addr = (volatile uint32_t*)addr;
-        
-        // Сохраняем оригинальное значение
-        uint32_t original = *test_addr;
-        
-        // Пробуем записать и прочитать тестовые значения
-        *test_addr = 0x12345678;
-        if(*test_addr != 0x12345678) break;
-        
-        *test_addr = 0x87654321;  
-        if(*test_addr != 0x87654321) break;
-        
-        // Восстанавливаем оригинальное значение
-        *test_addr = original;
-        
-        size += 0x100000; // Добавляем 1MB к доступной памяти
-    }
-    return size;
-}
-    
-    // Тест процессора
-    print_string("CPU Test: ", 25, 7, 0x07);
-    delay(99999999);
-    print_string("PASSED", 36, 7, 0x0A);
-    
-    // Тест клавиатуры
-print_string("Keyboard Test: ", 25, 8, 0x07);
-delay(500000);
-
-// Сбрасываем контроллер клавиатуры
-outb(0x64, 0xFE);
-delay(100000);
-
-// Проверяем ответ контроллера
-uint8_t status = inb(0x64);
-if((status & 0x01) && inb(0x60) == 0xAA) {
-    print_string("PASSED", 41, 8, 0x0A);
-} else {
-    print_string("FAILED", 41, 8, 0x0C);
-    error_count++;
-}
-    
+  
     // Тест видео
     print_string("Video Test: ", 25, 10, 0x07);
-    delay(99999999);
+    delay(10000);
     print_string("PASSED", 38, 10, 0x0A);
     
     // Сохраняем количество ошибок
@@ -413,7 +372,7 @@ if((status & 0x01) && inb(0x60) == 0xAA) {
     if (error_count >= 2) {
         print_string("Critical errors detected!", 25, 12, 0x0C);
         print_string("System will show error on next boot.", 25, 13, 0x07);
-        delay(999999);
+        delay(9999000);
     } else if (error_count > 0) {
         print_string("Some errors detected but system is operational.", 25, 12, 0x0E);
     } else {
@@ -422,25 +381,6 @@ if((status & 0x01) && inb(0x60) == 0xAA) {
     
     print_string("Press any key to return...", 25, 16, 0x07);
     keyboard_read();
-}
-
-void show_boot_failed_error(void) {
-    clear_screen(0x00); // Черный экран
-    print_string("BIOS BOOT FAILED! ERROR FirmWare", 24, 12, 0x0C);
-    
-    // Мигающий курсор
-    while(1) {
-        print_string("_", 56, 12, 0x0C);
-        delay(500000);
-        print_string(" ", 56, 12, 0x00);
-        delay(500000);
-        
-        // Проверяем ESC для выхода
-        uint8_t scancode = keyboard_read();
-        if (scancode == KEY_ESC) {
-            __asm__ volatile("int $0x19"); // Перезагрузка
-        }
-    }
 }
 
 // ==================== СИСТЕМА БЕЗОПАСНОСТИ ====================
@@ -655,6 +595,27 @@ uint8_t check_password(void) {
     return (strcmp(input_buffer, bios_settings.password) == 0);
 }
 
+// Функция показа загрузочного экрана
+void show_boot_screen(void) {
+    // Очищаем экран черным цветом
+    clear_screen(0x00);
+    
+    // Большой логотип WexIB 
+    print_string("I8,        8        ,8I                         88  88888888ba", 10, 3, 0x001F);  
+    print_string("`8b       d8b       d8'                         88  88      \"8b", 10, 4, 0x001F);
+    print_string(" \"8,     ,8\"8,     ,8\"                          88  88      ,8P", 10, 5, 0x001F);
+    print_string("  Y8     8P Y8     8P   ,adPPYba,  8b,     ,d8  88  88aaaaaa8P'", 10, 6, 0x001F);
+    print_string("  `8b   d8' `8b   d8'  a8P_____88   `Y8, ,8P'   88  88\"\"\"\"\"\"8b,", 10, 7, 0x001F);
+    print_string("   `8a a8'   `8a a8'   8PP\"\"\"\"\"\"\"     )888(     88  88      `8b", 10, 8, 0x001F);
+    print_string("    `8a8'     `8a8'    \"8b,   ,aa   ,d8\" \"8b,   88  88      a8P", 10, 9, 0x001F);  
+    print_string("     `8'       `8'      `\"Ybbd8\"'  8P'     `Y8  88  88888888P\"", 10, 10, 0x001F);  
+    
+    // Добавляем "BIOS" под логотипом 
+    print_string("BIOS v4.51", 35, 12, 0x001F);  
+    delay(99999);
+}
+
+
 // ==================== CMOS ФУНКЦИИ ====================
 
 uint8_t read_cmos(uint8_t reg) {
@@ -762,7 +723,7 @@ void boot_os(void) {
     print_string("Attempting to boot from hard disk...", 0, 0, 0x07);
     print_string("Loading boot sector to 0x7C00...", 0, 1, 0x07);
     
-    delay(1000000);
+    delay(100);
     
     boot_from_disk();
 }
@@ -775,7 +736,7 @@ void boot_from_disk(void) {
         // Проверяем сигнатуру загрузочного сектора
         if (boot_sector[255] == 0xAA55) {
             print_string("Boot signature found! Transferring control...", 0, 3, 0x07);
-            delay(2000000);
+            delay(100);
             
             // Копируем загрузочный сектор по адресу 0x7C00
             uint16_t* dest = (uint16_t*)0x7C00;
@@ -882,9 +843,8 @@ void detect_cpu_info(void) {
 
 // ==================== ФУНКЦИИ ВВОДА-ВЫВОДА ====================
 
-// Задержка
-void delay(uint32_t count) {
-    for(volatile uint32_t i = 0; i < count; i++);
+void delay(uint32_t milliseconds) {
+    for (volatile int i = 0; i < milliseconds * 1000; i++);
 }
 
 // Чтение из порта
@@ -1147,3 +1107,5 @@ void read_cmos_time(void) {
 void read_cmos_date(void) {
     // Чтение даты из CMOS
 }
+
+
