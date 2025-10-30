@@ -116,7 +116,8 @@ disk_error:
 
 ; Сообщения
 msg_loading db "Loading BIOS...", 0x0D, 0x0A, 0
-msg_error db "Disk Error!", 0
+msg_error db "Disk Error! The main BIOS firmware is damaged or not found! Try to reboot if it doesn't work then reflash to an older BIOS firmware current version 4.51 Firmware can be downloaded here https://github.com/mydak538/WexIB Instructions for flashing this device are available here: https://github.com/mydak538/WexIB/blob/main/flashing.md", 0
 
 times 510-($-$$) db 0
 dw 0xAA55
+
